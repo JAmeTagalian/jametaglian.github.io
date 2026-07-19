@@ -1,0 +1,428 @@
+<html>
+<head>
+<title>Raster Graphics</title>
+</head>
+<body>
+
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; border-bottom: 2px solid #ccc;">
+    <h1>Curriculum Vitae (CV)</h1>
+    <p><strong>Name:</strong> Natapat didsagon</p>
+    <p><strong>Student ID:</strong> 6721656086</p>
+    <p><strong>Education:</strong> Computer Science, Kasetsart University</p>
+</div>
+
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; text-align: center;">
+    <h2>Interactive Computer Graphics</h2>
+    <p style="color: red; font-size: 14px;">
+    </p>
+
+    <canvas id="canvas" width="200" height="200" style="width:500px; height:500px; border:1px solid #000; image-rendering: pixelated;"></canvas>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageData = ctx.createImageData(canvas.width, canvas.height);
+const pixels = imageData.data; // Array of color [R,G,B,A, R,G,B,A, ...]
+
+function putPixel(x, y, r, g, b, a = 255) {
+  const idx = (y * canvas.width + x) * 4; // หา index แรกของ pixel (x,y)
+  pixels[idx] = r;
+  pixels[idx + 1] = g;
+  pixels[idx + 2] = b;
+  pixels[idx + 3] = a;
+}
+
+function drawLine(x1, y1, x2, y2, r, g, b, a = 255) {
+  const dx = Math.abs(x2 - x1);
+  const dy = Math.abs(y2 - y1);
+
+  if(dx > dy) {
+    const m = (y2 - y1) / (x2 - x1);
+    const c = y1 - m * x1;
+    for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) {
+      const y = Math.round(m * x + c);
+      putPixel(x, y, r, g, b, a);
+    }
+  } else {
+    const m = (x2 - x1) / (y2 - y1);
+    const c = x1 - m * y1;
+    for (let y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+      const x = Math.round(m * y + c);
+      putPixel(x, y, r, g, b, a);
+    }
+  }
+}
+
+function drawRect(x1, y1, x2, y2, r, g, b, a = 255) {
+  drawLine(x1, y1, x2, y1, r, g, b, a); // Top edge
+  drawLine(x2, y1, x2, y2, r, g, b, a); // Right edge
+  drawLine(x2, y2, x1, y2, r, g, b, a); // Bottom edge
+  drawLine(x1, y2, x1, y1, r, g, b, a); // Left edge
+}
+
+function drawRectFilled(x1, y1, x2, y2, r, g, b, a = 255) {
+  for (let y = y1; y <= y2; y++) {
+    for (let x = x1; x <= x2; x++) {
+      putPixel(x, y, r, g, b, a);
+    }
+  }
+}
+
+function drawRectGradient(x1, y1, x2, y2, r1, g1, b1, r2, g2, b2) {
+  for (let y = y1; y <= y2; y++) {
+    const t = (y - y1) / (y2 - y1);
+    const r = Math.round(r1 * (1 - t) + r2 * t);
+    const g = Math.round(g1 * (1 - t) + g2 * t);
+    const b = Math.round(b1 * (1 - t) + b2 * t);
+    for (let x = x1; x <= x2; x++) {
+      putPixel(x, y, r, g, b);
+    }
+  }
+}
+
+function drawEllipse(cx, cy, rx, ry, r, g, b, a = 255) {
+  for (let y = -ry; y <= ry; y++) {
+    for (let x = -rx; x <= rx; x++) {
+      if ((x * x) / (rx * rx) + (y * y) / (ry * ry) < 1) {
+        putPixel(cx + x, cy + y, r, g, b, a);
+      }
+    }
+  }
+}
+
+function drawSprite(sprite, x, y, r, g, b, a = 255) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      if (sprite[j][i] === 1) {
+        putPixel(x + i, y + j, r, g, b, a);
+      }
+    }
+  }
+}
+
+function drawSpriteRotateScale(sprite, x, y, degree, scaleX, scaleY, r, g, b, a = 255) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      if (sprite[j][i] === 1) {
+        
+        // Center the pixel coordinates
+        const cX = i - (sprite[j].length / 2);
+        const cY = j - (sprite.length / 2);
+
+        // Rotate
+        const rad = degree * Math.PI / 180;
+        const x_rotated = Math.round(cX * Math.cos(rad) - cY * Math.sin(rad));
+        const y_rotated = Math.round(cX * Math.sin(rad) + cY * Math.cos(rad));
+
+        // Scale
+        const x_rotated_scaled = Math.round(x_rotated * scaleX);
+        const y_rotated_scaled = Math.round(y_rotated * scaleY);
+
+        //putPixel(x + x_rotated_scaled, y + y_rotated_scaled, r, g, b, a);
+        drawEllipse(x + x_rotated_scaled, y + y_rotated_scaled, Math.round(scaleX), Math.round(scaleY), r, g, b, a); // Draw a small ellipse instead of a pixel
+      }
+    }
+  }
+}
+
+
+
+function drawSprite24Bit(sprite, x, y) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      const color = sprite[j][i];
+
+      if (color !== null) {
+        const r = (color >> 16) & 255;
+        const g = (color >> 8) & 255;
+        const b = color & 255;
+        putPixel(x + i, y + j, r, g, b);
+      }
+    }
+  }
+}
+
+function drawSpriteRotateScale24Bit(sprite, x, y, degree, scaleX, scaleY) {
+  for (let j = 0; j < sprite.length; j++) {
+    for (let i = 0; i < sprite[j].length; i++) {
+      const color = sprite[j][i];
+      
+      if (color !== null) {
+        
+        const r = (color >> 16) & 255;
+        const g = (color >> 8) & 255;
+        const b = color & 255;
+
+
+        const cX = i - (sprite[j].length / 2);
+        const cY = j - (sprite.length / 2);
+
+
+        const rad = degree * Math.PI / 180;
+        const x_rotated = Math.round(cX * Math.cos(rad) - cY * Math.sin(rad));
+        const y_rotated = Math.round(cX * Math.sin(rad) + cY * Math.cos(rad));
+
+
+        const x_rotated_scaled = Math.round(x_rotated * scaleX);
+        const y_rotated_scaled = Math.round(y_rotated * scaleY);
+
+        drawEllipse(
+          x + x_rotated_scaled, 
+          y + y_rotated_scaled, 
+          Math.max(1, Math.round(scaleX)), 
+          Math.max(1, Math.round(scaleY)), 
+          r, g, b
+        );
+      }
+    }
+  }
+}
+function toScaledMousePos(posX, posY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    x: Math.floor((posX - rect.left) * scaleX),
+    y: Math.floor((posY - rect.top) * scaleY)
+  };
+}
+
+
+const spaceInvaderSprite = [
+            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+            [0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1],
+            [0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+            [0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+            [0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0],
+            [1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+        ];   
+const smileSprite16x16 = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+            [0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ];
+
+const smileSprite24Bit = [
+  [null,       null,       0xB45309, 0xD97706, 0xD97706, 0xB45309, null,       null      ],
+  [null,       0xD97706,   0xFDE047, 0xFEF08A, 0xFEF08A, 0xFDE047, 0xD97706, null      ],
+  [0xB45309,   0xFDE047,   0x111827, 0xFDE047, 0xFDE047, 0x111827, 0xFDE047, 0xB45309  ],
+  [0xD97706,   0xFEF08A,   0x111827, 0xFEF08A, 0xFEF08A, 0x111827, 0xFEF08A, 0xD97706  ],
+  [0xD97706,   0xFDE047,   0xFDE047, 0xFDE047, 0xFDE047, 0xFDE047, 0xFDE047, 0xD97706  ],
+  [0xB45309,   0xFDE047,   0x111827, 0xFDE047, 0xFDE047, 0x111827, 0xFDE047, 0xB45309  ],
+  [null,       0xD97706,   0xFDE047, 0x111827, 0x111827, 0xFDE047, 0xD97706, null      ],
+  [null,       null,       0xB45309, 0xD97706, 0xD97706, 0xB45309, null,       null      ],
+];  
+const smileSprite24Bit32x32 = [
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xFFDF48, 0xFFDF48, 0xFFDF48, 0xFFDF48, 0xFFDF48, 0xFFDF48, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xFFDE47, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xFFDD45, 0xC76A08, 0xC76A08, null, null, null, null, null, null],
+  [null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xFFDC44, 0xC76A08, 0xC76A08, null, null, null, null, null],
+  [null, null, null, null, 0xC76A08, 0xC76A08, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xFFDA43, 0xC76A08, 0xC76A08, null, null, null, null],
+  [null, null, null, null, 0xC76A08, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xFFD942, 0xC76A08, null, null, null, null],
+  [null, null, null, 0xC76A08, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xFFD841, 0xC76A08, null, null, null],
+  [null, null, 0xC76A08, 0xC76A08, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xFFD640, 0xC76A08, 0xC76A08, null, null],
+  [null, null, 0xC76A08, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0x3B2507, 0xFFFFFF, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0x3B2507, 0xFFFFFF, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xFFD53E, 0xC76A08, null, null],
+  [null, null, 0xC76A08, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xFFD43D, 0xC76A08, null, null],
+  [null, 0xC76A08, 0xC76A08, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xFFD33C, 0xC76A08, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0x3B2507, 0x3B2507, 0x3B2507, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xFFD13B, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xFFD03A, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xFFCF39, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xF58B73, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xF58B73, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xFFCD37, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFCC36, 0xFFCC36, 0xFFCC36, 0xC76A08, null],
+  [null, 0xC76A08, 0xFFCB35, 0xFFCB35, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xFFCB35, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFCB35, 0xFFCB35, 0xC76A08, null],
+  [null, 0xC76A08, 0xC76A08, 0xFFC934, 0xFFC934, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xFFC934, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xF58B73, 0xFFC934, 0xFFC934, 0xC76A08, 0xC76A08, null],
+  [null, null, 0xC76A08, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xF58B73, 0xFFC833, 0x7A2E0B, 0x7A2E0B, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0x7A2E0B, 0x7A2E0B, 0xFFC833, 0xF58B73, 0xFFC833, 0xFFC833, 0xFFC833, 0xFFC833, 0xC76A08, null, null],
+  [null, null, 0xC76A08, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xFFC732, 0xC76A08, null, null],
+  [null, null, 0xC76A08, 0xC76A08, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0xFFC630, 0xC76A08, 0xC76A08, null, null],
+  [null, null, null, 0xC76A08, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xFFC42F, 0xC76A08, null, null, null],
+  [null, null, null, null, 0xC76A08, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0x7A2E0B, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xFFC32E, 0xC76A08, null, null, null, null],
+  [null, null, null, null, 0xC76A08, 0xC76A08, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xFFC22D, 0xC76A08, 0xC76A08, null, null, null, null],
+  [null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xFFC02C, 0xC76A08, 0xC76A08, null, null, null, null, null],
+  [null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xFFBF2B, 0xC76A08, 0xC76A08, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xFFBE29, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xFFBD28, 0xFFBD28, 0xFFBD28, 0xFFBD28, 0xFFBD28, 0xFFBD28, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, 0xC76A08, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+];
+const majesticGreenDragon32x32 = [
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, 0x78350F, 0x78350F, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, 0x78350F, 0xFBBF24, 0xFBBF24, 0x78350F, null, null, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, 0x78350F, 0xFBBF24, 0xFDE047, 0x78350F, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x10B981, 0x065F46, 0x065F46, 0x065F46, 0x065F46, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, 0x065F46, 0x065F46, 0x065F46, 0x065F46, 0x78350F, 0xFBBF24, 0x78350F, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, 0x065F46, 0x991B1B, 0x991B1B, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null, null, null],
+  [null, null, 0x065F46, 0x10B981, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, 0x78350F, 0x78350F, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, 0x991B1B, 0xEF4444, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null, null, null],
+  [null, 0x065F46, 0x10B981, 0x6EE7B7, 0x6EE7B7, 0x10B981, 0x065F46, 0x065F46, 0x065F46, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, 0x991B1B, 0xEF4444, 0xFDE047, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null, null],
+  [null, 0x065F46, 0x10B981, 0x065F46, 0x065F46, 0x065F46, 0x991B1B, 0xEF4444, 0x065F46, null, null, null, 0x065F46, 0x065F46, 0x991B1B, 0xEF4444, 0xFDE047, 0xFDE047, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null],
+  [0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, 0x991B1B, 0xEF4444, 0x00FFFF, 0x065F46, null, null, null, null, 0x991B1B, 0xEF4444, 0xFDE047, 0xFDE047, 0x10B981, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null, null],
+  [0x065F46, 0x10B981, 0x10B981, 0xFBBF24, 0xFBBF24, 0xFBBF24, 0x78350F, 0x065F46, 0x065F46, null, null, null, null, 0x991B1B, 0xFDE047, 0xFDE047, 0x10B981, 0x10B981, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null],
+  [null, 0x065F46, 0x065F46, 0x78350F, 0xFBBF24, 0x78350F, 0x065F46, 0x991B1B, 0x065F46, null, null, null, 0x065F46, 0x991B1B, 0xFDE047, 0x10B981, 0x10B981, 0x065F46, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null],
+  [null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x991B1B, 0xEF4444, 0x991B1B, 0x065F46, null, 0x065F46, 0x10B981, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null],
+  [null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x991B1B, 0xEF4444, 0x991B1B, 0x065F46, 0x065F46, 0x10B981, 0x10B981, 0x065F46, 0x065F46, 0x065F46, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, 0x065F46, null, null, null],
+  [null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x065F46, 0x991B1B, 0x065F46, 0x10B981, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, null, null, null],
+  [null, null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x065F46, 0x10B981, 0x6EE7B7, 0x6EE7B7, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, null, null],
+  [null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x10B981, 0x6EE7B7, 0xFBBF24, 0xFBBF24, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xFDE047, 0xEF4444, 0x991B1B, null],
+  [null, null, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0xFBBF24, 0xFDE047, 0xFBBF24, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFDE047, 0xEF4444, 0x991B1B, null],
+  [null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xFBBF24, 0xFBBF24, 0x78350F, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0xEF4444, 0x065F46, null],
+  [null, null, null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x78350F, 0x78350F, 0x065F46, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null],
+  [null, null, null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x065F46, 0x991B1B, 0xEF4444, 0xEF4444, 0x991B1B, 0x065F46, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null],
+  [null, null, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, 0x991B1B, 0x991B1B, 0x065F46, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null],
+  [null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x10B981, 0x065F46, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null],
+  [null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x10B981, 0x6EE7B7, 0xFBBF24, 0x10B981, 0x065F46, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x10B981, 0xFBBF24, 0xFDE047, 0xFBBF24, 0x065F46, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x065F46, 0x78350F, 0xFBBF24, 0x78350F, 0x065F46, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x991B1B, 0x065F46, 0x065F46, 0x065F46, 0x991B1B, 0x065F46, null, null, 0x065F46, 0x10B981, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0xEF4444, 0xEF4444, 0xEF4444, 0x065F46, 0x10B981, 0x065F46, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x991B1B, 0x065F46, 0x10B981, 0x6EE7B7, 0x10B981, 0x10B981, 0x6EE7B7, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x10B981, 0x10B981, 0x10B981, 0x065F46, 0x065F46, 0x10B981, 0x065F46, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0x065F46, 0x065F46, 0x065F46, null, null, 0x065F46, 0x065F46, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+];
+const neonKnight32x32 = [
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, 0x1F2937, 0x1F2937, 0x374151, 0x374151, 0x1F2937, 0x1F2937, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0xD1D5DB, 0xD1D5DB, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x06B6D4, 0x3B82F6, 0x3B82F6, 0x06B6D4, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x06B6D4, 0x3B82F6, 0x6366F1, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x374151, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x374151, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null, null],
+  [null, null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x374151, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x374151, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x374151, 0x111827, 0x111827, 0x06B6D4, 0x3B82F6, 0x3B82F6, 0x111827, 0x111827, 0x111827, 0x111827, 0x3B82F6, 0x3B82F6, 0x06B6D4, 0x111827, 0x111827, 0x374151, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null, null],
+  [null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x374151, 0x111827, 0x111827, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x3B82F6, 0x111827, 0x111827, 0x111827, 0x111827, 0x3B82F6, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x111827, 0x111827, 0x374151, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null, null],
+  [null, null, null, 0x1F2937, 0x4B5563, 0x374151, 0x111827, 0x111827, 0x111827, 0x3B82F6, 0x3B82F6, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x3B82F6, 0x3B82F6, 0x111827, 0x111827, 0x111827, 0x374151, 0x4B5563, 0x1F2937, null, null, null, null, null],
+  [null, null, 0x1F2937, 0x4B5563, 0x374151, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0xEF4444, 0xEF4444, 0x111827, 0x111827, 0xEF4444, 0xEF4444, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x374151, 0x4B5563, 0x1F2937, null, null, null, null],
+  [null, null, 0x1F2937, 0x4B5563, 0x1F2937, 0x111827, 0x111827, 0x06B6D4, 0x111827, 0x111827, 0x111827, 0xEF4444, 0xFCA5A5, 0xFCA5A5, 0xEF4444, 0xEF4444, 0xFCA5A5, 0xFCA5A5, 0xEF4444, 0x111827, 0x111827, 0x111827, 0x06B6D4, 0x111827, 0x111827, 0x1F2937, 0x4B5563, 0x1F2937, null, null, null, null],
+  [null, 0x1F2937, 0x4B5563, 0x1F2937, 0x111827, 0x111827, 0x06B6D4, 0x67E8F9, 0x06B6D4, 0x111827, 0x111827, 0xEF4444, 0xFCA5A5, 0xFCA5A5, 0xEF4444, 0xEF4444, 0xFCA5A5, 0xFCA5A5, 0xEF4444, 0x111827, 0x111827, 0x06B6D4, 0x67E8F9, 0x06B6D4, 0x111827, 0x111827, 0x1F2937, 0x4B5563, 0x1F2937, null, null, null],
+  [null, 0x1F2937, 0x4B5563, 0x1F2937, 0x111827, 0x111827, 0x111827, 0x06B6D4, 0x111827, 0x111827, 0x111827, 0x111827, 0xEF4444, 0xEF4444, 0x111827, 0x111827, 0xEF4444, 0xEF4444, 0x111827, 0x111827, 0x111827, 0x111827, 0x06B6D4, 0x111827, 0x111827, 0x111827, 0x1F2937, 0x4B5563, 0x1F2937, null, null, null],
+  [null, 0x1F2937, 0x4B5563, 0x374151, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x374151, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x1F2937, 0x374151, 0x111827, 0x111827, 0x111827, 0x111827, 0x111827, 0x374151, 0x4B5563, 0x1F2937, null, null, null],
+  [null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x374151, 0x111827, 0x111827, 0x111827, 0x374151, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x374151, 0x374151, 0x374151, 0x374151, 0x374151, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x374151, 0x111827, 0x111827, 0x111827, 0x374151, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null],
+  [null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x374151, 0x374151, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x374151, 0x06B6D4, 0x3B82F6, 0x3B82F6, 0x3B82F6, 0x3B82F6, 0x3B82F6, 0x3B82F6, 0x06B6D4, 0x374151, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x374151, 0x374151, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null],
+  [null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0x6366F1, 0x6366F1, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null],
+  [null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0xA855F7, 0xA855F7, 0xA855F7, 0xA855F7, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x4B5563, 0x9CA3AF, 0x9CA3AF, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x4B5563, 0x9CA3AF, 0x4B5563, 0x1F2937, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x4B5563, 0x4B5563, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x4B5563, 0x4B5563, 0x1F2937, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x374151, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x374151, 0x1F2937, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x374151, 0x06B6D4, 0x67E8F9, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x67E8F9, 0x06B6D4, 0x374151, 0x1F2937, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x374151, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x374151, 0x1F2937, null, null, null, null],
+  [null, null, null, null, 0x1F2937, 0x1F2937, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x1F2937, 0x1F2937, null, null, null, null],
+  [null, null, null, null, null, 0x1F2937, 0x1F2937, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x1F2937, null, null, null, null],
+  [null, null, null, null, null, null, 0x1F2937, 0x1F2937, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x1F2937, null, null, null, null],
+  [null, null, null, null, null, null, null, 0x1F2937, 0x1F2937, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x1F2937, null, null, null, null],
+  [null, null, null, null, null, null, null, null, 0x1F2937, 0x1F2937, 0x06B6D4, 0x3B82F6, 0x6366F1, 0xA855F7, 0xD8B4FE, 0xE9D5FF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xFFFFFF, 0xE9D5FF, 0xD8B4FE, 0xA855F7, 0x6366F1, 0x3B82F6, 0x06B6D4, 0x1F2937, null, null, null, null],
+  [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null]
+];
+let isDragging = false; 
+let previousX = 0;
+let previousY = 0;
+let r = 0, g = 0, b = 0, a = 255; // Default color
+let degree = 0; // Default rotation degree
+let scale = 1;
+let mouseX = 0, mouseY = 0; // Mouse position
+
+canvas.addEventListener('click', (event) => {
+
+});
+
+canvas.addEventListener('mousedown', (event) => {
+  isDragging = true;
+  console.log('Mouse down', event.offsetX, event.offsetY);
+});
+
+canvas.addEventListener('mouseup', (event) => {
+  isDragging = false;
+  console.log('Mouse up', event.offsetX, event.offsetY);
+});
+
+canvas.addEventListener('mousemove', (event) => {
+
+  const { x, y } = toScaledMousePos(event.clientX, event.clientY);
+
+  mouseX = x;
+  mouseY = y;
+
+  if(isDragging) {
+    drawLine(previousX, previousY, x, y, r, g, b); // Draw a line from previous position to current position with the current color
+    //putPixel(x, y, r, g, b); // Draw a pixel at current position with the current color
+    ctx.putImageData(imageData, 0, 0);
+  }
+  previousX = x;
+  previousY = y;
+});
+
+window.addEventListener('keydown', (event) => {
+  console.log('Key down:', event.key);
+  if(event.key === '1') {
+    r = 255; g = 0; b = 0; // Change to red
+  }
+  else if(event.key === '2') {
+    r = 0; g = 255; b = 0; // Change to green
+  }
+  else if(event.key === '3') {
+    r = 0; g = 0; b = 255; // Change to blue
+  }
+
+
+  if(event.key === 'ArrowLeft') {
+    degree -= 5; // Rotate left
+  }
+  else if(event.key === 'ArrowRight') {
+    degree += 5; // Rotate right
+  }
+
+  if(event.key === 'ArrowUp') {
+    scale += 0.1; // Scale up
+  }
+  else if(event.key === 'ArrowDown') {
+    scale -= 0.1; // Scale down
+  }
+
+});
+window.addEventListener('keyup', (event) => {
+  console.log('Key up:', event.key);
+});
+
+
+
+
+ctx.putImageData(imageData, 0, 0);
+
+function animate() {
+  drawRectFilled(0, 0, canvas.width - 1, canvas.height - 1, 255, 255, 255); 
+  
+  drawSpriteRotateScale24Bit( neonKnight32x32, mouseX, mouseY, degree, scale, scale); 
+  
+  ctx.putImageData(imageData, 0, 0);
+  requestAnimationFrame(animate);
+}
+animate();
+
+
+</script>
+</body>
+</html>
