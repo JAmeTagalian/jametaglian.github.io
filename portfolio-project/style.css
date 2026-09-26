@@ -1,0 +1,36 @@
+:root{
+  --bg:#0e0f12; --panel:#17181c; --panel-border:#2a2c32;
+  --text:#eef0f3; --muted:#9a9ea7; --accent:#e08a3c;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Sarabun,sans-serif;
+  overflow:hidden;}
+#canvas-wrap{position:fixed;inset:0;}
+canvas{display:block;width:100%;height:100%;touch-action:none;}
+
+#hint{
+  position:fixed; left:16px; top:16px;
+  max-width:280px; background:var(--panel); border:1px solid var(--panel-border);
+  border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.5; color:var(--muted);
+  pointer-events:none;
+}
+#hint b{color:var(--text);}
+
+#loading{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:var(--bg); color:var(--muted); font-size:14px; z-index:20;
+}
+
+#lightbox{
+  position:fixed; inset:0; background:rgba(0,0,0,.85); display:none;
+  align-items:center; justify-content:center; z-index:30;
+}
+#lightbox.show{display:flex;}
+#lightbox img{max-width:90vw; max-height:85vh; border-radius:6px; box-shadow:0 20px 60px rgba(0,0,0,.5);}
+#lightboxClose{
+  position:fixed; top:18px; right:18px; border:1px solid var(--panel-border);
+  background:var(--panel); color:var(--text); border-radius:8px; width:36px; height:36px;
+  font-size:16px; cursor:pointer;
+}
+#lightboxClose:hover{border-color:var(--accent); color:var(--accent);}
