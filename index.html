@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive 3D Portfolio Room</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="loading">กำลังโหลดโมเดล…</div>
+  <div id="canvas-wrap"></div>
+
+  <div id="hint">
+    <b>วิธีใช้งาน</b><br>
+    คลิกกรอบรูป/ภาพวาด เพื่อดูรูปขยาย<br>
+    คลิกทีวี เพื่อเล่น/หยุดวิดีโอ<br>
+    ลาก = หมุนกล้อง · เลื่อนล้อ = ซูม
+  </div>
+
+  <div id="lightbox">
+    <button id="lightboxClose">✕</button>
+    <img id="lightboxImg" src="" alt="">
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
